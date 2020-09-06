@@ -20,7 +20,7 @@ func maybeParseAlias(parts []string) (*Alias, error) {
 		return nil, nil
 	}
 	alias := &Alias{
-		AliasName:   parts[0][1:],
+		AliasName:   parts[0],
 		CommandName: parts[2],
 	}
 	err := validateCommand(alias.AliasName)
@@ -52,8 +52,8 @@ func ParseCommandWithAlias(line string) (interface{}, error) {
 	if len(line) == 0 {
 		return nil, nil
 	}
-	if line[0] != '/' {
-		return nil, fmt.Errorf("Malformatted command, expected leading slash: %s", line)
+	if line[0] == '/' {
+		line = line[1:]
 	}
 	parts := strings.Split(line, " ")
 	alias, err := maybeParseAlias(parts)

@@ -5,9 +5,16 @@ import (
 	"testing"
 )
 
+const (
+	AliasSample                  string = "tp -> teleport"
+	CommandSample                string = "/seed"
+	CommandWithArgSample         string = "/me <action>"
+	CommandWithOptionalArgSample string = "/clear [<targets>]"
+	CommandWithSubcommandSample  string = "/recipe (give|take)"
+)
+
 func TestParseAlias(t *testing.T) {
-	aliasStr := "/tp -> teleport"
-	out, err := ParseCommandWithAlias(aliasStr)
+	out, err := ParseCommandWithAlias(AliasSample)
 	if err != nil {
 		t.Fatalf("Failed to parse alias: %s", err)
 	}
@@ -21,6 +28,10 @@ func TestParseAlias(t *testing.T) {
 	if alias.CommandName != "teleport" {
 		t.Errorf("Expected command name 'tp' got: '%v'", alias.CommandName)
 	}
+	cmd, _ := ParseCommand(AliasSample)
+	if cmd != nil {
+		t.Errorf("Expected nil command")
+	}
 }
 
 func TestParseAliasFailures(t *testing.T) {
@@ -29,7 +40,6 @@ func TestParseAliasFailures(t *testing.T) {
 		err   string
 	}
 	testCases := []testCase{
-		{"tp -> teleport", "expected leading"},
 		{"/{} -> teleport", "Invalid command name: {}"},
 		{"/tp -> []", "Invalid command name: []"},
 	}
