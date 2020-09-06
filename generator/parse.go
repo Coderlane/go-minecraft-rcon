@@ -34,7 +34,7 @@ func maybeParseAlias(parts []string) (*Alias, error) {
 	return alias, nil
 }
 
-// Parses only commands
+// ParseCommand parses only commands
 func ParseCommand(line string) (*Command, error) {
 	out, err := ParseCommandWithAlias(line)
 	if err != nil {
@@ -47,7 +47,7 @@ func ParseCommand(line string) (*Command, error) {
 	return nil, nil
 }
 
-// Parses commands as well as aliases
+// ParseCommandWithAlias parses commands as well as aliases
 func ParseCommandWithAlias(line string) (interface{}, error) {
 	if len(line) == 0 {
 		return nil, nil
