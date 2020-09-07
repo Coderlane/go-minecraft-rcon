@@ -34,6 +34,45 @@ func maybeParseAlias(parts []string) (*Alias, error) {
 	return alias, nil
 }
 
+func parseCommandFromParts(parts []string) (*Command, error) {
+	name := parts[0]
+	err := validateCommand(name)
+	if err != nil {
+		return nil, err
+	}
+	cmd := &Command{
+		Name: name,
+	}
+	for _, part := range parts[1:] {
+		optional := false
+		name := ""
+		// Check for optional parameters
+		if part[0] == '[' && part[len(part)-1] == ']' {
+			optional = true
+			part = part[1 : len(part)-1]
+		}
+		// Strip array parens
+		if part[0] == '(' && part[len(part)-1] == ')' {
+			part = part[1 : len(part)-1]
+		}
+		// Check for sub-values
+		values := strings.Split(part, "|")
+		if len(values) <= 1 {
+			values = []string{}
+		}
+		// Check for an argument name
+		if part[0] == '<' && part[len(part)-1] == '>' {
+			name = part[1 : len(part)-1]
+		}
+		cmd.Arguments = append(cmd.Arguments, Argument{
+			Optional: optional,
+			Name:     name,
+			Values:   values,
+		})
+	}
+	return cmd, nil
+}
+
 // ParseCommand parses only commands
 func ParseCommand(line string) (*Command, error) {
 	out, err := ParseCommandWithAlias(line)
@@ -48,10 +87,7 @@ func ParseCommand(line string) (*Command, error) {
 }
 
 // ParseCommandWithAlias parses commands as well as aliases
-func ParseCommandWithAlias(line string) (interface{}, error) {
-	if len(line) == 0 {
-		return nil, nil
-	}
+func ParseCommandWithAlias(line string) (CommandInterface, error) {
 	if line[0] == '/' {
 		line = line[1:]
 	}
@@ -60,5 +96,5 @@ func ParseCommandWithAlias(line string) (interface{}, error) {
 	if err != nil || alias != nil {
 		return alias, err
 	}
-	return nil, nil
+	return parseCommandFromParts(parts)
 }
