@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/coderlane/go-minecraft-rcon/generator"
+	"github.com/Coderlane/go-minecraft-rcon/generator"
 )
 
 func main() {
