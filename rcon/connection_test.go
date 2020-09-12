@@ -83,8 +83,16 @@ func handleData(conn net.Conn) error {
 	if err != nil {
 		return err
 	}
+	// Check for invalid message types
 	if req.Header.Type != DataPacket {
-		return fmt.Errorf("Unexpected packet type: %v", req.Header.Type)
+		resp := Packet{
+			Header: PacketHeader{
+				ID:   req.Header.ID,
+				Type: DataPacket,
+			},
+			Body: fmt.Sprintf("Unknown request %d", req.Header.Type),
+		}
+		return resp.EncodeBinary(conn)
 	}
 	// Don't ack snd messages
 	if req.Body == "snd" {
@@ -263,7 +271,6 @@ func TestSendWouldTimeout(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	FragmentMessage = "msg-1"
 	MaxRequestsPerSecond = 100
 
 	srv, err := newTestServer()

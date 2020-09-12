@@ -19,11 +19,6 @@ var (
 
 	// DefaultTimeout represents the default timeout for messages
 	DefaultTimeout time.Duration = time.Second * 25
-
-	// FragmentMessage represents the message sent to determine the end of a
-	// fragmented response from the server. Pick a message that has small
-	// response.
-	FragmentMessage string = "seed"
 )
 
 const (
@@ -119,12 +114,13 @@ func (conn *RConConn) request(pkt Packet) (string, error) {
 			break
 		} else if endID == invalidMessageID {
 			// After the first packet with the maximum size, send a message
-			// so we can figure out when the current message is done.
+			// so we can figure out when the current message is done. We send an
+			// invalid message that generates an error, but does not close the
+			// connection.
 			endPacket := Packet{
 				Header: PacketHeader{
-					Type: DataPacket,
+					Type: DataPacketResponse,
 				},
-				Body: FragmentMessage,
 			}
 			endID, err = conn.send(endPacket)
 			if err != nil {
