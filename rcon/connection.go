@@ -21,12 +21,8 @@ var (
 	DefaultTimeout time.Duration = time.Second * 25
 )
 
-const (
-	invalidMessageID int32 = -1
-)
-
-// RConConn represents a connection with an rcon server
-type RConConn struct {
+// Conn represents a connection with an rcon server
+type Conn struct {
 	packetID int32
 	conn     net.Conn
 
@@ -34,9 +30,9 @@ type RConConn struct {
 }
 
 // Dial dials the server and authenticates with the given password
-func Dial(address, password string) (*RConConn, error) {
+func Dial(address, password string) (*Conn, error) {
 	var err error
-	conn := &RConConn{
+	conn := &Conn{
 		limiter: rate.NewLimiter(MaxRequestsPerSecond, MaxParallelRequests),
 	}
 	conn.conn, err = net.Dial("tcp", address)
@@ -45,7 +41,7 @@ func Dial(address, password string) (*RConConn, error) {
 	}
 	request := Packet{
 		Header: PacketHeader{
-			Type: AuthPacket,
+			Type: PacketTypeAuth,
 		},
 		Body: password,
 	}
@@ -56,7 +52,7 @@ func Dial(address, password string) (*RConConn, error) {
 	return conn, nil
 }
 
-func (conn *RConConn) nextID() int32 {
+func (conn *Conn) nextID() int32 {
 	id := conn.packetID
 	if conn.packetID != math.MaxInt32 {
 		conn.packetID++
@@ -66,7 +62,7 @@ func (conn *RConConn) nextID() int32 {
 	return id
 }
 
-func (conn *RConConn) send(req Packet) (int32, error) {
+func (conn *Conn) send(req Packet) (int32, error) {
 	conn.conn.SetDeadline(time.Now().Add(DefaultTimeout))
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
@@ -79,26 +75,26 @@ func (conn *RConConn) send(req Packet) (int32, error) {
 	return req.Header.ID, req.EncodeBinary(conn.conn)
 }
 
-func (conn *RConConn) recv() (Packet, error) {
+func (conn *Conn) recv() (Packet, error) {
 	var resp Packet
 	err := resp.DecodeBinary(conn.conn)
 	return resp, err
 }
 
-func (conn *RConConn) request(pkt Packet) (string, error) {
+func (conn *Conn) request(pkt Packet) (string, error) {
 	id, err := conn.send(pkt)
 	if err != nil {
 		return "", err
 	}
 
 	respBody := ""
-	endID := invalidMessageID
+	endID := PacketIDInvalid
 	for {
 		resp, err := conn.recv()
 		if err != nil {
 			return "", err
 		}
-		if resp.Header.ID == invalidMessageID {
+		if resp.Header.ID == PacketIDInvalid {
 			return "", fmt.Errorf("auth error")
 		}
 		if resp.Header.ID == endID {
@@ -109,17 +105,17 @@ func (conn *RConConn) request(pkt Packet) (string, error) {
 				resp.Header.ID, id)
 		}
 		respBody += resp.Body
-		if len(resp.Body) < int(packetMaxSize) &&
-			endID == invalidMessageID {
+		if len(resp.Body) < int(PacketMaxSize) &&
+			endID == PacketIDInvalid {
 			break
-		} else if endID == invalidMessageID {
+		} else if endID == PacketIDInvalid {
 			// After the first packet with the maximum size, send a message
 			// so we can figure out when the current message is done. We send an
 			// invalid message that generates an error, but does not close the
 			// connection.
 			endPacket := Packet{
 				Header: PacketHeader{
-					Type: DataPacketResponse,
+					Type: PacketTypeDataResponse,
 				},
 			}
 			endID, err = conn.send(endPacket)
@@ -132,10 +128,10 @@ func (conn *RConConn) request(pkt Packet) (string, error) {
 }
 
 // Request sends a request to the server and returns the response
-func (conn *RConConn) Request(body string) (string, error) {
+func (conn *Conn) Request(body string) (string, error) {
 	pkt := Packet{
 		Header: PacketHeader{
-			Type: DataPacket,
+			Type: PacketTypeData,
 		},
 		Body: body,
 	}
@@ -143,10 +139,10 @@ func (conn *RConConn) Request(body string) (string, error) {
 }
 
 // Send sends a request to the server and ignores the response
-func (conn *RConConn) Send(body string) error {
+func (conn *Conn) Send(body string) error {
 	pkt := Packet{
 		Header: PacketHeader{
-			Type: DataPacket,
+			Type: PacketTypeData,
 		},
 		Body: body,
 	}
@@ -155,6 +151,6 @@ func (conn *RConConn) Send(body string) error {
 }
 
 // Close closes the connection to the server
-func (conn *RConConn) Close() error {
+func (conn *Conn) Close() error {
 	return conn.conn.Close()
 }

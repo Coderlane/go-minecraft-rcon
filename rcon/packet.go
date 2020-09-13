@@ -9,21 +9,24 @@ import (
 type packetType int32
 
 const (
-	// AuthPacket is sent by the client to the server during initial auth.
-	AuthPacket packetType = 3
+	// PacketTypeAuth is sent by the client to the server during initial auth.
+	PacketTypeAuth packetType = 3
 	// AuthResponsePacket is sent by the server to the client during initial auth.
 	AuthResponsePacket packetType = 2
-	// DataPacket is sent by the client to the server for standard messages.
-	DataPacket packetType = 2
-	// DataPacketResponse is sent by the server to the client for replies to
+	// PacketTypeData is sent by the client to the server for standard messages.
+	PacketTypeData packetType = 2
+	// PacketTypeDataResponse is sent by the server to the client for replies to
 	// standard messages.
-	DataPacketResponse packetType = 0
+	PacketTypeDataResponse packetType = 0
 )
 
 const (
-	packetBaseSize int32 = 10
+	packetSizeBase int32 = 10
 
-	packetMaxSize int32 = 4096
+	// PacketMaxSize is the maximum size of the body of a message.
+	PacketMaxSize int32 = 4096
+	// PacketIDInvalid is the packet ID used for invalid responses.
+	PacketIDInvalid int32 = -1
 )
 
 // PacketHeader contains the constant-size portion of the packet.
@@ -39,7 +42,7 @@ type Packet struct {
 }
 
 func (pkt Packet) size() int32 {
-	return packetBaseSize + int32(len(pkt.Body))
+	return packetSizeBase + int32(len(pkt.Body))
 }
 
 // EncodeBinary encodes a packet into its wire format.
@@ -63,18 +66,18 @@ func (pkt *Packet) DecodeBinary(reader io.Reader) error {
 	if err := binary.Read(reader, binary.LittleEndian, &size); err != nil {
 		return err
 	}
-	if size < packetBaseSize {
+	if size < packetSizeBase {
 		return fmt.Errorf("packet size: %d smaller than minimum: %d",
-			size, packetBaseSize)
+			size, packetSizeBase)
 	}
-	if size > packetBaseSize+packetMaxSize {
+	if size > packetSizeBase+PacketMaxSize {
 		return fmt.Errorf("packet size: %d greater than maximum: %d",
-			size, packetBaseSize)
+			size, packetSizeBase)
 	}
 	if err := binary.Read(reader, binary.LittleEndian, &pkt.Header); err != nil {
 		return err
 	}
-	body := make([]byte, size-packetBaseSize)
+	body := make([]byte, size-packetSizeBase)
 	if err := binary.Read(reader, binary.LittleEndian, &body); err != nil {
 		return err
 	}

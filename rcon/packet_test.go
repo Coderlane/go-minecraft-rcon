@@ -15,7 +15,7 @@ func TestEncodeDecode(t *testing.T) {
 	inputPacket := Packet{
 		Header: PacketHeader{
 			ID:   1,
-			Type: DataPacket,
+			Type: PacketTypeData,
 		},
 		Body: "test",
 	}
