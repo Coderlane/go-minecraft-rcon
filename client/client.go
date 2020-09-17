@@ -1,36 +1,64 @@
 package client
 
+//go:generate mockgen -destination=mock_client.go -package=client -self_package=github.com/Coderlane/go-minecraft-rcon/client github.com/Coderlane/go-minecraft-rcon/client Client
+
 import (
+	"fmt"
+	"regexp"
+
 	"github.com/Coderlane/go-minecraft-rcon/rcon"
 )
 
-// Client is a higher level wrapper for RCon connections
-type Client struct {
+var (
+	cmdRegex *regexp.Regexp = regexp.MustCompile(`^[ \w\-\.\;\:\,]+$`)
+)
+
+type Client interface {
+	Request(cmd string) (string, error)
+	Send(cmd string) error
+	Close() error
+}
+
+// client is a higher level wrapper for RCon connections
+type client struct {
 	conn *rcon.Conn
 }
 
-// NewClient creates a new client that will connect to the RCon server
-func NewClient(address, password string) (*Client, error) {
+// Newclient creates a new c that will connect to the RCon server
+func NewClient(address, password string) (Client, error) {
 	conn, err := rcon.Dial(address, password)
 	if err != nil {
 		return nil, err
 	}
-	return &Client{
+	return &client{
 		conn: conn,
 	}, nil
 }
 
+func validateCommand(cmd string) error {
+	if !cmdRegex.MatchString(cmd) {
+		return fmt.Errorf("invalid command: %s", cmd)
+	}
+	return nil
+}
+
 // Request sends a request to the server and returns the response
-func (client *Client) Request(body string) (string, error) {
-	return client.conn.Request(body)
+func (c *client) Request(cmd string) (string, error) {
+	if err := validateCommand(cmd); err != nil {
+		return "", err
+	}
+	return c.conn.Request(cmd)
 }
 
 // Send sends a request to the server and ignores the response
-func (client *Client) Send(body string) error {
-	return client.conn.Send(body)
+func (c *client) Send(cmd string) error {
+	if err := validateCommand(cmd); err != nil {
+		return err
+	}
+	return c.conn.Send(cmd)
 }
 
 // Close closes the connection to the server
-func (client *Client) Close() error {
-	return client.conn.Close()
+func (c *client) Close() error {
+	return c.conn.Close()
 }

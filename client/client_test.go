@@ -13,7 +13,7 @@ const (
 )
 
 var (
-	testClient        *Client
+	testClient        Client
 	testServerAddress string
 )
 
