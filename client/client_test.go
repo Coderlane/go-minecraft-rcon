@@ -3,6 +3,7 @@ package client
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/Coderlane/go-minecraft-rcon/rcon"
@@ -16,6 +17,16 @@ var (
 	testClient        Client
 	testServerAddress string
 )
+
+func expectError(t *testing.T, err error, expected string) {
+	t.Helper()
+	if err == nil {
+		t.Fatal("Expected error")
+	}
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("Expected: %s Got: %v", expected, err)
+	}
+}
 
 func TestInvalidAddress(t *testing.T) {
 	_, err := NewClient("invalid", testPassword)
@@ -34,6 +45,11 @@ func TestRequest(t *testing.T) {
 	}
 }
 
+func TestRequestInvalid(t *testing.T) {
+	_, err := testClient.Request("req\nreq")
+	expectError(t, err, "invalid command: req")
+}
+
 func TestSend(t *testing.T) {
 	err := testClient.Send("snd")
 	if err != nil {
@@ -41,10 +57,15 @@ func TestSend(t *testing.T) {
 	}
 }
 
+func TestSendInvalid(t *testing.T) {
+	err := testClient.Send("snd\nsnd")
+	expectError(t, err, "invalid command: snd")
+}
+
 func TestClose(t *testing.T) {
 	client, err := NewClient(testServerAddress, testPassword)
 	if err != nil {
-		t.Fatal("Expected an error")
+		t.Fatal(err)
 	}
 	err = client.Send("snd")
 	if err != nil {
