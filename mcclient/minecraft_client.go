@@ -39,6 +39,14 @@ func NewMinecraftClient(client client.Client) *MinecraftClient {
 	}
 }
 
+func (mc *MinecraftClient) simpleRequest(cmd, respPrefix string) error {
+	resp, err := mc.client.Request(cmd)
+	if err != nil {
+		return err
+	}
+	return validateResponsePrefix(resp, respPrefix)
+}
+
 // Close closes the connection with the server.
 func (mc *MinecraftClient) Close() error {
 	return mc.client.Close()
@@ -88,11 +96,8 @@ func (mc *MinecraftClient) UserBan(user string) error {
 	if err := validateUser(user); err != nil {
 		return err
 	}
-	resp, err := mc.client.Request(fmt.Sprintf("ban %s", user))
-	if err != nil {
-		return err
-	}
-	return validateResponsePrefix(resp, "Banned")
+	return mc.simpleRequest(
+		fmt.Sprintf("ban %s", user), "Banned")
 }
 
 // UserPardon pardons a user by name
@@ -100,27 +105,18 @@ func (mc *MinecraftClient) UserPardon(user string) error {
 	if err := validateUser(user); err != nil {
 		return err
 	}
-	resp, err := mc.client.Request(fmt.Sprintf("pardon %s", user))
-	if err != nil {
-		return err
-	}
-	return validateResponsePrefix(resp, "Unbanned")
+	return mc.simpleRequest(
+		fmt.Sprintf("pardon %s", user), "Unbanned")
 }
 
 // IPBan bans an IP address
 func (mc *MinecraftClient) IPBan(ip net.IP) error {
-	resp, err := mc.client.Request(fmt.Sprintf("ban-ip %s", ip.String()))
-	if err != nil {
-		return err
-	}
-	return validateResponsePrefix(resp, "Banned IP")
+	return mc.simpleRequest(
+		fmt.Sprintf("ban-ip %s", ip.String()), "Banned IP")
 }
 
 // IPPardon pardons an IP address
 func (mc *MinecraftClient) IPPardon(ip net.IP) error {
-	resp, err := mc.client.Request(fmt.Sprintf("pardon-ip %s", ip.String()))
-	if err != nil {
-		return err
-	}
-	return validateResponsePrefix(resp, "Unbanned IP")
+	return mc.simpleRequest(
+		fmt.Sprintf("pardon-ip %s", ip.String()), "Unbanned IP")
 }
