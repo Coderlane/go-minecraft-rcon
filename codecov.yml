@@ -1,2 +1,5 @@
 fixes:
   - "src/github.com/Coderlane/go-minecraft-rcon/::"        # trim temp root
+
+ignore:
+  - "**/mock_*.go"
